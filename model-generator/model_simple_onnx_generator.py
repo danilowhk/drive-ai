@@ -15,5 +15,5 @@ x = torch.randn(1, 20)
 # Export model to ONNX
 torch.onnx.export(model, 
                   x,
-                  "model.onnx",
+                  "model_simple.onnx",
                   opset_version=11)

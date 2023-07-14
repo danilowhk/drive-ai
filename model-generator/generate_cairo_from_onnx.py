@@ -2,26 +2,36 @@ import onnx
 import numpy as np
 import os
 
+# ONNX model file
+model_file = 'model_cnn.onnx'
+
+# Extract base model name without extension
+model_name = os.path.splitext(os.path.basename(model_file))[0]
+
 # Load ONNX model
-model = onnx.load('model.onnx')
+model = onnx.load(model_file)
 print(model)
 
 # Generate Cairo files 
+def process_tensor(initializer):
+    if 'weight' in initializer.name:
+        return np.frombuffer(initializer.raw_data, dtype=np.float32).reshape(initializer.dims)
+    else:
+        return np.frombuffer(initializer.raw_data, dtype=np.float32)
+
 tensors = {}
 for initializer in model.graph.initializer:
-    if initializer.name == "0.weight":
-        tensors["fc1_weights"] = np.frombuffer(initializer.raw_data, dtype=np.float32).reshape(initializer.dims)
-
-    elif initializer.name == "0.bias":
-        tensors["fc1_bias"] = np.frombuffer(initializer.raw_data, dtype=np.float32)
+    name = initializer.name.replace('.', '_')
+    tensors[name] = process_tensor(initializer)  
 
 print(tensors)
-os.makedirs('files/generated_from_onnx', exist_ok=True)
 
-os.makedirs('files/generated_from_onnx', exist_ok=True)
+# Use model name in directory paths
+cairo_files_dir = f'files/{model_name}_generated_from_onnx'
+os.makedirs(cairo_files_dir, exist_ok=True)
 
 for tensor_name, tensor in tensors.items():
-    with open(os.path.join('files/generated_from_onnx', f"{tensor_name}.cairo"), "w") as f:
+    with open(os.path.join(cairo_files_dir, f"{tensor_name}.cairo"), "w") as f:
         f.write(
             "use array::ArrayTrait;\n" +
             "use orion::operators::tensor::core::{TensorTrait, Tensor, ExtraParams};\n" +
@@ -44,8 +54,6 @@ for tensor_name, tensor in tensors.items():
             "}\n"
         )
 
-with open(os.path.join('files', 'generated_from_onnx.cairo'), 'w') as f:
+with open(os.path.join('files', f'{model_name}_generated_from_onnx.cairo'), 'w') as f:
     for param_name in tensors.keys():
         f.write(f"mod {param_name};\n")
-
-
