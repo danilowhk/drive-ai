@@ -12,7 +12,7 @@ model = nn.Sequential(
 # Generate input sample
 x = torch.randn(1, 20)
 
-# Export model to ONNX
+## Export model to ONNX
 torch.onnx.export(model, 
                   x,
                   "model_simple.onnx",
